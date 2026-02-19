@@ -730,7 +730,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  'LECTRA v4.1 - Gestión de Reportes',
+                  'LECTRA v4.2 - Gestión de Reportes',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade600,

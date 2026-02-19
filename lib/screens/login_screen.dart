@@ -21,7 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   
   // Versión actual de la app
-  static const String APP_VERSION = '4.1';
+  static const String APP_VERSION = '4.2';
   
   // Variable para almacenar la versión requerida
   String? _requiredVersion;
@@ -148,11 +148,11 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Abrir Google Play Store para descargar la actualización
+  // Abrir Supabase para descargar la actualización
   Future<void> _openAppStore() async {
     try {
       // Reemplaza 'com.tu.app.id' con el ID real de tu app
-      const playStoreUrl = 'https://txeuzsypnwesscganktp.supabase.co/storage/v1/object/public/cold/actualizaciones/lectra.apk';
+      const playStoreUrl = 'https://txeuzsypnwesscganktp.supabase.co/storage/v1/object/public/cold/actualizaciones/lectra_nueva_version.apk';
       
       if (await canLaunchUrl(Uri.parse(playStoreUrl))) {
         await launchUrl(
@@ -161,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
-      _showSnackBar('No se pudo abrir Play Store', isError: true);
+      _showSnackBar('No se pudo abrir Supabase', isError: true);
     }
   }
 
@@ -487,7 +487,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Versión: 4.1',
+                        'Versión: 4.2',
                         style: TextStyle(
                           color: Colors.grey.shade600,
                           fontSize: 14,
