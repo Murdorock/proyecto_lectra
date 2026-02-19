@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Ícono LECTRA</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+        }
+        h1 {
+            color: #1A237E;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        canvas {
+            border: 3px solid #1A237E;
+            border-radius: 15px;
+            cursor: crosshair;
+            display: block;
+            margin: 20px auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .controls {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .control-group {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #1A237E;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        button {
+            background: #1A237E;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #0d47a1;
+        }
+        .preview {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .preview-item {
+            text-align: center;
+            margin: 10px;
+        }
+        .preview-item img {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+        }
+        .preview-item p {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        .instructions {
+            background: #e3f2fd;
+            border-left: 4px solid #1A237E;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #1A237E;
+        }
+        .instructions ol {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Generador de Ícono LECTRA</h1>
+        <p class="subtitle">Aplicación de Gestión de Lectura de Medidores y Repartida de Facturas</p>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Texto del Ícono:</label>
+                <input type="text" id="iconText" value="LECTRA" maxlength="7">
+            </div>
+            
+            <div class="control-group">
+                <label>Estilo:</label>
+                <select id="iconStyle">
+                    <option value="meter">Medidor Circular</option>
+                    <option value="minimal">Minimalista (Solo Texto)</option>
+                    <option value="gauge">Medidor con Aguja</option>
+                    <option value="document">Documento/Factura</option>
+                    <option value="lightning">Rayo Energético</option>
+                </select>
+            </div>
+            
+            <button onclick="generateIcon()">🎨 Generar Ícono</button>
+            <button onclick="downloadIcon()">💾 Descargar PNG (1024x1024)</button>
+        </div>
+        
+        <canvas id="iconCanvas" width="512" height="512"></canvas>
+        
+        <div class="preview">
+            <div class="preview-item">
+                <img id="preview192" width="192" height="192">
+                <p>192x192 (Android)</p>
+            </div>
+            <div class="preview-item">
+                <img id="preview180" width="180" height="180">
+                <p>180x180 (iOS)</p>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 Instrucciones:</h3>
+            <ol>
+                <li>Personaliza el texto y estilo del ícono arriba</li>
+                <li>Haz clic en "Generar Ícono"</li>
+                <li>Descarga el PNG de alta resolución</li>
+                <li>Guarda el archivo como <code>app_icon.png</code> en la carpeta <code>assets/icon/</code></li>
+                <li>Ejecuta en terminal: <code>flutter pub get</code></li>
+                <li>Luego ejecuta: <code>flutter pub run flutter_launcher_icons</code></li>
+            </ol>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('iconCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function generateIcon() {
+            const text = document.getElementById('iconText').value;
+            const style = document.getElementById('iconStyle').value;
+            
+            // Limpiar canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Fondo corporativo
+            ctx.fillStyle = '#1A237E';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            switch(style) {
+                case 'meter':
+                    drawMeterStyle(centerX, centerY, text);
+                    break;
+                case 'minimal':
+                    drawMinimalStyle(centerX, centerY, text);
+                    break;
+                case 'gauge':
+                    drawGaugeStyle(centerX, centerY, text);
+                    break;
+                case 'document':
+                    drawDocumentStyle(centerX, centerY, text);
+                    break;
+                case 'lightning':
+                    drawLightningStyle(centerX, centerY, text);
+                    break;
+            }
+            
+            updatePreviews();
+        }
+        
+        function drawMeterStyle(cx, cy, text) {
+            // Círculo exterior
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 15;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 180, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Círculo interior
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.fill();
+            
+            // Marcas del medidor
+            ctx.strokeStyle = '#FFC107';
+            ctx.lineWidth = 8;
+            for(let i = 0; i < 12; i++) {
+                const angle = (i * 30 - 90) * Math.PI / 180;
+                const x1 = cx + Math.cos(angle) * 150;
+                const y1 = cy + Math.sin(angle) * 150;
+                const x2 = cx + Math.cos(angle) * 170;
+                const y2 = cy + Math.sin(angle) * 170;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            
+            // Aguja
+            ctx.strokeStyle = '#FFC107';
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + 120, cy - 120);
+            ctx.stroke();
+            
+            // Centro
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Texto
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 50px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, cx, cy + 100);
+        }
+        
+        function drawMinimalStyle(cx, cy, text) {
+            // Texto grande
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 120px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, cx, cy);
+            
+            // Subtítulo
+            ctx.font = 'bold 24px Arial';
+            ctx.fillStyle = '#FFC107';
+            ctx.fillText('GESTIÓN DE SERVICIOS', cx, cy + 80);
+        }
+        
+        function drawGaugeStyle(cx, cy, text) {
+            // Semicírculo del medidor
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 20;
+            ctx.beginPath();
+            ctx.arc(cx, cy + 50, 150, Math.PI, Math.PI * 2);
+            ctx.stroke();
+            
+            // Marcas
+            for(let i = 0; i <= 10; i++) {
+                const angle = Math.PI + (i * Math.PI / 10);
+                const x1 = cx + Math.cos(angle) * 130;
+                const y1 = cy + 50 + Math.sin(angle) * 130;
+                const x2 = cx + Math.cos(angle) * 150;
+                const y2 = cy + 50 + Math.sin(angle) * 150;
+                
+                ctx.strokeStyle = i % 2 === 0 ? '#FFC107' : '#FFFFFF';
+                ctx.lineWidth = i % 2 === 0 ? 6 : 3;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            
+            // Aguja
+            const needleAngle = Math.PI + (Math.PI * 0.7);
+            ctx.strokeStyle = '#FFC107';
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(cx, cy + 50);
+            ctx.lineTo(cx + Math.cos(needleAngle) * 120, cy + 50 + Math.sin(needleAngle) * 120);
+            ctx.stroke();
+            
+            // Texto
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 60px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, cx, cy - 80);
+        }
+        
+        function drawDocumentStyle(cx, cy, text) {
+            // Documento
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.roundRect(cx - 100, cy - 150, 200, 280, 15);
+            ctx.fill();
+            
+            // Líneas del documento
+            ctx.strokeStyle = '#1A237E';
+            ctx.lineWidth = 8;
+            for(let i = 0; i < 5; i++) {
+                ctx.beginPath();
+                ctx.moveTo(cx - 70, cy - 100 + i * 50);
+                ctx.lineTo(cx + 70, cy - 100 + i * 50);
+                ctx.stroke();
+            }
+            
+            // Rayo/energía
+            ctx.fillStyle = '#FFC107';
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - 50);
+            ctx.lineTo(cx - 30, cy);
+            ctx.lineTo(cx - 10, cy);
+            ctx.lineTo(cx - 30, cy + 60);
+            ctx.lineTo(cx + 30, cy + 10);
+            ctx.lineTo(cx + 10, cy + 10);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Texto
+            ctx.fillStyle = '#1A237E';
+            ctx.font = 'bold 30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, cx, cy + 160);
+        }
+        
+        function drawLightningStyle(cx, cy, text) {
+            // Rayo grande
+            ctx.fillStyle = '#FFC107';
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - 150);
+            ctx.lineTo(cx - 80, cy);
+            ctx.lineTo(cx - 20, cy);
+            ctx.lineTo(cx - 80, cy + 150);
+            ctx.lineTo(cx + 80, cy + 30);
+            ctx.lineTo(cx + 20, cy + 30);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Contorno
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 8;
+            ctx.stroke();
+            
+            // Texto
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 55px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, cx, cy);
+        }
+        
+        function updatePreviews() {
+            const dataUrl = canvas.toDataURL('image/png');
+            document.getElementById('preview192').src = dataUrl;
+            document.getElementById('preview180').src = dataUrl;
+        }
+        
+        function downloadIcon() {
+            // Crear canvas de alta resolución (1024x1024)
+            const hiResCanvas = document.createElement('canvas');
+            hiResCanvas.width = 1024;
+            hiResCanvas.height = 1024;
+            const hiResCtx = hiResCanvas.getContext('2d');
+            
+            // Escalar el dibujo actual
+            hiResCtx.scale(2, 2);
+            hiResCtx.drawImage(canvas, 0, 0);
+            
+            // Descargar
+            const link = document.createElement('a');
+            link.download = 'app_icon.png';
+            link.href = hiResCanvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // Polyfill para roundRect
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                this.moveTo(x + r, y);
+                this.lineTo(x + w - r, y);
+                this.quadraticCurveTo(x + w, y, x + w, y + r);
+                this.lineTo(x + w, y + h - r);
+                this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                this.lineTo(x + r, y + h);
+                this.quadraticCurveTo(x, y + h, x, y + h - r);
+                this.lineTo(x, y + r);
+                this.quadraticCurveTo(x, y, x + r, y);
+            };
+        }
+        
+        // Generar ícono inicial
+        generateIcon();
+    </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+name: lectra
+description: Aplicación LECTRA - Gestión de Reportes
+publish_to: 'none'
+version: 2.2.1+10
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  supabase_flutter: ^2.5.0
+  image_picker: ^1.2.0
+  file_picker: ^8.0.0
+  syncfusion_flutter_signaturepad: ^31.2.5
+  pdf: ^3.11.3
+  geolocator: ^11.0.0
+  flutter_map: ^6.1.0
+  http: ^1.1.0
+  share_plus: ^7.2.1
+  cross_file: ^0.3.4
+  intl: ^0.20.0
+  mobile_scanner: ^5.2.3
+  url_launcher: ^6.0.0
+  path_provider: ^2.1.0
+  shared_preferences: ^2.2.0
+  device_info_plus: ^10.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#1A237E"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/
