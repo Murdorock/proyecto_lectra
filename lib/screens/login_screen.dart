@@ -21,7 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   
   // Versión actual de la app
-  static const String APP_VERSION = '4.2';
+  static const String APP_VERSION = '4.3';
   
   // Variable para almacenar la versión requerida
   String? _requiredVersion;
@@ -487,7 +487,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Versión: 4.2',
+                        'Versión: 4.3',
                         style: TextStyle(
                           color: Colors.grey.shade600,
                           fontSize: 14,

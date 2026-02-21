@@ -204,19 +204,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       _buildMenuButton(
         context,
-        icon: Icons.assignment_turned_in,
-        label: 'CERTIFICACIONES REPARTO',
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const CertificacionesRepartoOfflineScreen(),
-            ),
-          );
-        },
-      ),
-      _buildMenuButton(
-        context,
         icon: Icons.flash_on,
         label: 'CONTINGENCIA',
         onTap: () {
@@ -228,25 +215,12 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      _buildMenuButton(
-        context,
-        icon: Icons.login,
-        label: 'REGISTRO\nDE LLEGADA',
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const RegistroLlegadaScreen(),
-            ),
-          );
-        },
-      ),
     ];
     final supervisorButtons = [
       _buildMenuButton(
         context,
         icon: Icons.receipt_long,
-        label: 'REPORTE TOTALES LECTURA',
+        label: 'TOTALES LECTURA',
         onTap: () {
           Navigator.push(
             context,
@@ -401,19 +375,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       _buildMenuButton(
         context,
-        icon: Icons.assignment_turned_in,
-        label: 'CERTIFICACIONES REPARTO',
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const CertificacionesRepartoOfflineScreen(),
-            ),
-          );
-        },
-      ),
-      _buildMenuButton(
-        context,
         icon: Icons.flash_on,
         label: 'CONTINGENCIA\nLECTURA',
         onTap: () {
@@ -460,19 +421,6 @@ class _HomeScreenState extends State<HomeScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => const QuejasScreen(),
-            ),
-          );
-        },
-      ),
-      _buildMenuButton(
-        context,
-        icon: Icons.login,
-        label: 'REGISTRO\nDE LLEGADA',
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const RegistroLlegadaScreen(),
             ),
           );
         },
@@ -730,7 +678,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  'LECTRA v4.2 - Gestión de Reportes',
+                  'LECTRA v4.3 - Gestión de Reportes',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade600,
