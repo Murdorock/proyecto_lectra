@@ -66,6 +66,49 @@ class _EditarErrorScreenState extends State<EditarErrorScreen> {
     return error.contains('Descarga');
   }
 
+  String _sanitizeForFileName(String value) {
+    final sanitized = value
+        .trim()
+        .replaceAll(RegExp(r'\s+'), '_')
+        .replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '');
+    return sanitized.isEmpty ? 'sin_dato' : sanitized;
+  }
+
+  String _buildDateTimeStamp() {
+    final now = DateTime.now();
+    final year = now.year.toString().padLeft(4, '0');
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+    final hour = now.hour.toString().padLeft(2, '0');
+    final minute = now.minute.toString().padLeft(2, '0');
+    final second = now.second.toString().padLeft(2, '0');
+    return '${year}${month}${day}_${hour}${minute}${second}';
+  }
+
+  String _buildFileName({
+    required String tipo,
+    required String extension,
+    int? numeroEvidencia,
+  }) {
+    final instalacion = _sanitizeForFileName(
+      (_detalleError?['instalacion'] ?? widget.error['instalacion'] ?? '').toString(),
+    );
+    final lector = _sanitizeForFileName(
+      (_detalleError?['lector'] ??
+              widget.error['lector'] ??
+              UserSession().codigoSupAux ??
+              '')
+          .toString(),
+    );
+    final timestamp = _buildDateTimeStamp();
+    final tipoConNumero = numeroEvidencia != null ? '${tipo}_$numeroEvidencia' : tipo;
+    final tipoFinal = _sanitizeForFileName(tipoConNumero).toLowerCase();
+    final safeExtension = _sanitizeForFileName(extension).toLowerCase();
+    final finalExtension = safeExtension.isEmpty ? 'dat' : safeExtension;
+
+    return '${timestamp}_${instalacion}_${lector}_${tipoFinal}.$finalExtension';
+  }
+
   Future<void> _loadDetalle() async {
     setState(() {
       _isLoading = true;
@@ -79,7 +122,7 @@ class _EditarErrorScreenState extends State<EditarErrorScreen> {
             direccion, instalacion, consumo, causa_observacion, adicional, 
             alfa, ciclo, supervisor_zona, foto, falta_firma, observacion, 
             debia_dejar_constancia, observacion_constancia, error,
-            refutar, argumento, evidencia1, evidencia2, pdf, video
+            refutar, argumento, evidencia1, evidencia2, pdf, video, lector
           ''')
           .eq('id', widget.error['id'])
           .single();
@@ -180,10 +223,12 @@ class _EditarErrorScreenState extends State<EditarErrorScreen> {
         return null;
       }
       
-      final codigoSupAux = UserSession().codigoSupAux;
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = 'evidencia${numeroEvidencia}_$timestamp.jpg';
-      final filePath = 'refutar_errores/$codigoSupAux/$fileName';
+      final fileName = _buildFileName(
+        tipo: 'evidencia',
+        extension: 'jpg',
+        numeroEvidencia: numeroEvidencia,
+      );
+      final filePath = 'refutar_errores/$fileName';
 
       await supabase.storage
           .from('cold')
@@ -249,10 +294,11 @@ class _EditarErrorScreenState extends State<EditarErrorScreen> {
         return null;
       }
       
-      final codigoSupAux = UserSession().codigoSupAux;
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = 'pdf_$timestamp.pdf';
-      final filePath = 'refutar_errores/$codigoSupAux/$fileName';
+      final fileName = _buildFileName(
+        tipo: 'pdf',
+        extension: 'pdf',
+      );
+      final filePath = 'refutar_errores/$fileName';
 
       await supabase.storage
           .from('cold')
@@ -333,11 +379,12 @@ class _EditarErrorScreenState extends State<EditarErrorScreen> {
         return null;
       }
       
-      final codigoSupAux = UserSession().codigoSupAux;
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final extension = video.path.split('.').last;
-      final fileName = 'video_$timestamp.$extension';
-      final filePath = 'refutar_errores/$codigoSupAux/$fileName';
+      final extensionPart = video.path.split('.').last;
+      final fileName = _buildFileName(
+        tipo: 'video',
+        extension: extensionPart,
+      );
+      final filePath = 'refutar_errores/$fileName';
 
       await supabase.storage
           .from('cold')

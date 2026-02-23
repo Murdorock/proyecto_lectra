@@ -56,6 +56,7 @@ class HistoricosMetricasService {
     required String accion,
     String? criterio,
     String? valor,
+    String? tipoConsumo,
     Map<String, dynamic>? metadatos,
   }) async {
     try {
@@ -70,6 +71,8 @@ class HistoricosMetricasService {
         'accion': accion,
         'criterio': criterio,
         'valor': valor,
+        if (tipoConsumo != null)
+          'tipo_consumo': tipoConsumo,
         'fecha_evento': DateTime.now().toIso8601String(),
         'metadatos': {
           'pantalla': 'historicos',
@@ -93,11 +96,35 @@ class HistoricosMetricasService {
   static Future<void> registrarConsulta({
     required String criterio,
     required String valor,
+    bool? consultaEfectiva,
+    String? tipoConsumo,
+    int? totalResultados,
   }) async {
     await registrarEvento(
       accion: 'consulta_historicos',
       criterio: criterio,
       valor: valor,
+      tipoConsumo: tipoConsumo ?? '',
+      metadatos: {
+        if (consultaEfectiva != null) 'consulta_efectiva': consultaEfectiva,
+        if (tipoConsumo != null && tipoConsumo.isNotEmpty) 'tipo_consumo': tipoConsumo,
+        if (totalResultados != null) 'total_resultados': totalResultados,
+      },
+    );
+  }
+
+  static Future<void> registrarIngresoDetalle({
+    required String nroInstalacion,
+    required String tipoConsumo,
+  }) async {
+    await registrarEvento(
+      accion: 'ingreso_detalle_historico',
+      criterio: 'nro_instalacion',
+      valor: nroInstalacion,
+      tipoConsumo: tipoConsumo,
+      metadatos: {
+        'consulta_efectiva': true,
+      },
     );
   }
 

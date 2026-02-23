@@ -242,10 +242,6 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
       print('Formato:  ${ubicacionActual.latitude} ${ubicacionActual.longitude}');
       print('===========================');
 
-      await HistoricosMetricasService.registrarConsulta(
-        criterio: campoBusqueda ?? 'DESCONOCIDO',
-        valor: valorBusqueda ?? '',
-      );
       // Realizar la búsqueda en la tabla hystoricos incluyendo coordenada
       final data = await supabase
           .from('hystoricos')
@@ -331,6 +327,14 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
             valor: valorBusqueda ?? '',
           );
         }
+
+        await HistoricosMetricasService.registrarConsulta(
+          criterio: campoBusqueda ?? 'DESCONOCIDO',
+          valor: valorBusqueda ?? '',
+          consultaEfectiva: resultadosFiltrados.isNotEmpty,
+          tipoConsumo: '',
+          totalResultados: resultadosFiltrados.length,
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -644,7 +648,12 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.visibility, color: Color(0xFF1A237E), size: 20),
-                                  onPressed: () {
+                                  onPressed: () async {
+                                    await HistoricosMetricasService.registrarIngresoDetalle(
+                                      nroInstalacion: nroInstalacion,
+                                      tipoConsumo: tipoConsumo == 'N/A' ? '' : tipoConsumo,
+                                    );
+                                    if (!context.mounted) return;
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
