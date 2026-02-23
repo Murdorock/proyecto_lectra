@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../main.dart';
 import '../services/user_session.dart';
+import '../services/dispositivo_auth_service.dart';
 import 'home_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -165,6 +166,27 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _registrarLoginLector({
+    required String email,
+  }) async {
+    try {
+      final dispositivo = await DispositivoAuthService.obtenerDispositivoActual();
+
+      await supabase.from('dispositivos_autorizados').upsert(
+        {
+          'email': email,
+          'dispositivo_id': dispositivo.id,
+          'dispositivo_modelo': dispositivo.modelo,
+          'plataforma': dispositivo.plataforma,
+          'activo': true,
+        },
+        onConflict: 'email,dispositivo_id',
+      );
+    } catch (_) {
+      // No bloquear el login por fallos en el registro del dispositivo.
+    }
+  }
+
   Future<void> _handleLogin() async {
     // Verificar versión antes de intentar login
     if (_requiredVersion != null && !_isVersionValid()) {
@@ -199,20 +221,62 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.user != null) {
-        // Verificar si el usuario existe en la tabla perfiles
-        final profileData = await supabase
+        // Verificar perfil y rol permitido
+        final perfilCompleto = await supabase
             .from('perfiles')
-            .select('email, nombre_completo, codigo_sup_aux')
+            .select('email, nombre_completo, codigo_sup_aux, rol')
             .eq('email', email)
             .maybeSingle();
 
-        if (profileData != null) {
-          // Obtener también el rol del usuario
-          final perfilCompleto = await supabase
-              .from('perfiles')
-              .select('email, nombre_completo, codigo_sup_aux, rol')
-              .eq('email', email)
-              .maybeSingle();
+        if (perfilCompleto != null) {
+          final rol = (perfilCompleto['rol'] ?? '').toString().toUpperCase();
+          const rolesPermitidos = {'ADMINISTRADOR', 'SUPERVISOR', 'LECTOR'};
+
+          if (!rolesPermitidos.contains(rol)) {
+            _showSnackBar('Acceso no permitido para el rol asignado', isError: true);
+            await supabase.auth.signOut();
+            return;
+          }
+
+          // Para LECTOR se permite acceso desde cualquier dispositivo
+          if (rol != 'LECTOR') {
+            // Validar que el dispositivo esté autorizado para este usuario
+            final resultadoDispositivo = await DispositivoAuthService.validarDispositivoAutorizado(
+              email: email,
+            );
+
+            if (!resultadoDispositivo.autorizado) {
+              // Modo autorización inicial para roles permitidos: primer dispositivo del usuario
+              final yaTieneDispositivos =
+                  await DispositivoAuthService.usuarioTieneDispositivosAutorizados(
+                email: email,
+              );
+
+              if (!yaTieneDispositivos) {
+                final registroOk = await DispositivoAuthService.autorizarDispositivoActual(
+                  email: email,
+                );
+
+                if (!registroOk) {
+                  _showSnackBar(
+                    'No se pudo registrar este dispositivo para autorización inicial',
+                    isError: true,
+                  );
+                  await supabase.auth.signOut();
+                  return;
+                }
+
+                _showSnackBar('Dispositivo autorizado correctamente (autorización inicial)', isError: false);
+              } else {
+                _showSnackBar(
+                  resultadoDispositivo.motivo ?? 'Este dispositivo no está autorizado',
+                  isError: true,
+                );
+                await supabase.auth.signOut();
+                return;
+              }
+            }
+          }
           
           // Guardar datos del usuario en la sesión
           UserSession().setUserData(
@@ -221,6 +285,12 @@ class _LoginScreenState extends State<LoginScreen> {
             email: perfilCompleto?['email'] ?? '',
             rol: perfilCompleto?['rol'],
           );
+
+          if (rol == 'LECTOR') {
+            await _registrarLoginLector(
+              email: perfilCompleto?['email'] ?? email,
+            );
+          }
           
           // Login exitoso
           if (mounted) {
