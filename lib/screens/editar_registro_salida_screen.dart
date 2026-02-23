@@ -629,12 +629,6 @@ class _EditarRegistroSalidaScreenState extends State<EditarRegistroSalidaScreen>
                       ),
                       const SizedBox(height: 16),
                       
-                      // CÓDIGO DE BARRAS - Scanner
-                      _buildCodigoBarrasField(),
-                      const SizedBox(height: 16),
-                      
-                      // Hora Llegada (no editable)
-                      _buildHoraLlegadaField(),
                       const SizedBox(height: 24),
 
                       // Formulario

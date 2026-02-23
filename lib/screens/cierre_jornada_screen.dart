@@ -397,19 +397,6 @@ class _CierreJornadaScreenState extends State<CierreJornadaScreen> {
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          tieneHoraLlegada
-                                              ? 'Hora de llegada registrada'
-                                              : 'Hora de llegada pendiente',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: tieneHoraLlegada
-                                                ? Colors.green.shade700
-                                                : Colors.red,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
                                       ],
                                     ),
                                   ),
