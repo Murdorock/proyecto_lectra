@@ -170,18 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
     required String email,
   }) async {
     try {
-      final dispositivo = await DispositivoAuthService.obtenerDispositivoActual();
-
-      await supabase.from('dispositivos_autorizados').upsert(
-        {
-          'email': email,
-          'dispositivo_id': dispositivo.id,
-          'dispositivo_modelo': dispositivo.modelo,
-          'plataforma': dispositivo.plataforma,
-          'activo': true,
-        },
-        onConflict: 'email,dispositivo_id',
-      );
+      await DispositivoAuthService.autorizarDispositivoActual(email: email);
     } catch (_) {
       // No bloquear el login por fallos en el registro del dispositivo.
     }

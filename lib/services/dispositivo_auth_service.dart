@@ -32,6 +32,10 @@ class DispositivoAuthService {
   static const String _tabla = 'dispositivos_autorizados';
   static DispositivoInfo? _cacheDispositivo;
 
+  static String _fechaHoraLocalIsoSinZona() {
+    return DateTime.now().toIso8601String();
+  }
+
   static Future<DispositivoInfo> obtenerDispositivoActual() async {
     if (_cacheDispositivo != null) return _cacheDispositivo!;
 
@@ -151,16 +155,32 @@ class DispositivoAuthService {
     final dispositivo = await obtenerDispositivoActual();
 
     try {
-      await supabase.from(_tabla).upsert(
-        {
+      final existente = await supabase
+          .from(_tabla)
+          .select('id')
+          .eq('email', email)
+          .eq('dispositivo_id', dispositivo.id)
+          .maybeSingle();
+
+      if (existente != null) {
+        await supabase
+            .from(_tabla)
+            .update({
+              'dispositivo_modelo': dispositivo.modelo,
+              'plataforma': dispositivo.plataforma,
+              'activo': true,
+            })
+            .eq('id', existente['id']);
+      } else {
+        await supabase.from(_tabla).insert({
           'email': email,
           'dispositivo_id': dispositivo.id,
           'dispositivo_modelo': dispositivo.modelo,
           'plataforma': dispositivo.plataforma,
           'activo': true,
-        },
-        onConflict: 'email,dispositivo_id',
-      );
+          'created_at': _fechaHoraLocalIsoSinZona(),
+        });
+      }
       return true;
     } catch (_) {
       return false;
