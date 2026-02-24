@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import 'dart:math' show cos, sqrt, asin;
 import '../main.dart';
-import '../services/historicos_metricas_service.dart';import '../services/user_session.dart';import 'detalle_historico_screen.dart';
+import '../services/historicos_metricas_service.dart';
+import '../services/user_session.dart';
+import 'detalle_historico_screen.dart';
 
 class HistoricosScreen extends StatefulWidget {
   const HistoricosScreen({super.key});
@@ -23,6 +27,7 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
   String? _mensajeBusqueda;
   late DateTime _horaApertura;
   Position? _currentPosition;
+  bool _isCapturingLocation = false;
 
   @override
   void initState() {
@@ -33,15 +38,13 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
 
   Future<void> _validarAcceso() async {
     try {
-      // Validar que la sesión sea válida
       final sessionValid = await UserSession().ensureSessionValid();
-      
+
       if (!sessionValid) {
         _mostrarErrorYRedireccionar('Sesión inválida');
         return;
       }
-      
-      // Validar rol de usuario
+
       final userRole = UserSession().rol?.toUpperCase();
       if (userRole != 'SUPERVISOR' && userRole != 'ADMINISTRADOR') {
         await HistoricosMetricasService.registrarIntentofallido(
@@ -53,7 +56,7 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
         );
         return;
       }
-      
+
       HistoricosMetricasService.registrarVistaAbierta();
     } catch (e) {
       _mostrarErrorYRedireccionar('Error al validar acceso: ${e.toString()}');
@@ -72,7 +75,7 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                Navigator.of(context).pop(); // Volver a home
+                Navigator.of(context).pop();
               },
               child: const Text('Cerrar'),
             ),
@@ -92,26 +95,24 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
     super.dispose();
   }
 
-  // Calcular distancia entre dos coordenadas usando fórmula de Haversine
   double _calcularDistancia(double lat1, double lon1, double lat2, double lon2) {
     const double radioTierraKm = 6371.0;
     final double dLat = _toRadians(lat2 - lat1);
     final double dLon = _toRadians(lon2 - lon1);
-    
-    final double a = 
-        (1 - cos(dLat)) / 2 + 
+
+    final double a =
+        (1 - cos(dLat)) / 2 +
         cos(_toRadians(lat1)) * cos(_toRadians(lat2)) * (1 - cos(dLon)) / 2;
-    
+
     final double c = 2 * asin(sqrt(a));
     final double distanciaKm = radioTierraKm * c;
-    return distanciaKm * 1000; // Convertir a metros
+    return distanciaKm * 1000;
   }
 
   double _toRadians(double grados) {
     return grados * 3.141592653589793 / 180;
   }
 
-  // Obtener ubicación actual del usuario
   Future<Position?> _obtenerUbicacionActual() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -152,6 +153,24 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
       });
       return null;
     }
+  }
+
+  Future<void> _capturarUbicacionReal() async {
+    setState(() {
+      _isCapturingLocation = true;
+      _errorMessage = null;
+    });
+
+    final posicion = await _obtenerUbicacionActual();
+
+    if (!mounted) return;
+
+    setState(() {
+      _isCapturingLocation = false;
+      if (posicion != null) {
+        _currentPosition = posicion;
+      }
+    });
   }
 
   Future<void> _buscar() async {
@@ -219,6 +238,23 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
       return;
     }
 
+    final criterioBusqueda = campoBusqueda!;
+    final valorCriterio = valorBusqueda!;
+    final columnaCriterio = columnaBusqueda!;
+
+    if (_currentPosition == null) {
+      await HistoricosMetricasService.registrarIntentofallido(
+        tipo: 'ubicacion_no_capturada',
+        mensaje: 'Intento de búsqueda sin capturar ubicación real',
+      );
+      setState(() {
+        _errorMessage = 'Primero debe capturar su ubicación real en el mapa';
+        _resultados = [];
+        _mensajeBusqueda = null;
+      });
+      return;
+    }
+
     setState(() {
       _isSearching = true;
       _errorMessage = null;
@@ -226,14 +262,7 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
     });
 
     try {
-      // Obtener ubicación actual del usuario
-      final ubicacionActual = await _obtenerUbicacionActual();
-      if (ubicacionActual == null) {
-        setState(() {
-          _isSearching = false;
-        });
-        return;
-      }
+      final ubicacionActual = _currentPosition!;
 
       // DEBUG: Mostrar ubicación actual
       print('=== TU UBICACIÓN ACTUAL ===');
@@ -246,7 +275,7 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
       final data = await supabase
           .from('hystoricos')
           .select('nro_instalacion, direccion, tipo_consumo, coordenada')
-          .eq(columnaBusqueda!, valorBusqueda!)
+          .eq(columnaCriterio, valorCriterio)
           .limit(10);
 
       if (mounted) {
@@ -310,7 +339,7 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
           } else {
             _resultados = resultadosFiltrados;
             if (_resultados.isNotEmpty) {
-              _mensajeBusqueda = 'Resultados para: $campoBusqueda: $valorBusqueda\n${_resultados.length} registro(s) encontrado(s)';
+              _mensajeBusqueda = 'Resultados para: $criterioBusqueda: $valorCriterio\n${_resultados.length} registro(s) encontrado(s)';
               if (registrosRechazados.isNotEmpty) {
                 _mensajeBusqueda = '$_mensajeBusqueda\n(${registrosRechazados.length} registro(s) omitido(s) por ubicación)';
               }
@@ -323,14 +352,14 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
         
         if (resultadosFiltrados.isEmpty) {
           await HistoricosMetricasService.registrarBusquedaSinResultados(
-            criterio: campoBusqueda ?? 'DESCONOCIDO',
-            valor: valorBusqueda ?? '',
+            criterio: criterioBusqueda,
+            valor: valorCriterio,
           );
         }
 
         await HistoricosMetricasService.registrarConsulta(
-          criterio: campoBusqueda ?? 'DESCONOCIDO',
-          valor: valorBusqueda ?? '',
+          criterio: criterioBusqueda,
+          valor: valorCriterio,
           consultaEfectiva: resultadosFiltrados.isNotEmpty,
           tipoConsumo: '',
           totalResultados: resultadosFiltrados.length,
@@ -421,7 +450,10 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
                         helperText: '18 dígitos',
                         helperStyle: TextStyle(fontSize: 10, color: Colors.grey),
                       ),
-                      style: const TextStyle(fontSize: 14),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                      ),
                       onChanged: (value) {
                         if (value.isNotEmpty) {
                           _direccionController.clear();
@@ -489,6 +521,133 @@ class _HistoricosScreenState extends State<HistoricosScreen> {
                 ],
               ),
             ),
+
+            // Ubicación actual en mapa
+            if (_resultados.isEmpty)
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.map, color: Color(0xFF1A237E), size: 18),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'Verificación de ubicación',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1A237E),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 170,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: _currentPosition == null
+                            ? Container(
+                                color: Colors.grey.shade100,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.location_searching,
+                                      color: Colors.grey.shade500,
+                                      size: 36,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Aún no se capturó la ubicación real',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : FlutterMap(
+                                options: MapOptions(
+                                  initialCenter: LatLng(
+                                    _currentPosition!.latitude,
+                                    _currentPosition!.longitude,
+                                  ),
+                                  initialZoom: 18,
+                                ),
+                                children: [
+                                  TileLayer(
+                                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName: 'com.lectra.app',
+                                  ),
+                                  MarkerLayer(
+                                    markers: [
+                                      Marker(
+                                        point: LatLng(
+                                          _currentPosition!.latitude,
+                                          _currentPosition!.longitude,
+                                        ),
+                                        width: 60,
+                                        height: 60,
+                                        child: const Icon(
+                                          Icons.location_pin,
+                                          color: Colors.red,
+                                          size: 42,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _currentPosition == null
+                          ? 'Capture su ubicación antes de consultar'
+                          : 'Ubicación capturada: '
+                              '${_currentPosition!.latitude.toStringAsFixed(6)}, '
+                              '${_currentPosition!.longitude.toStringAsFixed(6)}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _currentPosition == null ? Colors.orange.shade800 : Colors.green.shade800,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed: _isCapturingLocation || _isSearching ? null : _capturarUbicacionReal,
+                      icon: _isCapturingLocation
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(Icons.my_location, size: 16),
+                      label: Text(_isCapturingLocation ? 'CAPTURANDO...' : 'CAPTURAR UBICACIÓN REAL'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1A237E),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
             // Botones
             Container(

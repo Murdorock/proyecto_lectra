@@ -1,3 +1,4 @@
+import 'package:android_id/android_id.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,11 +9,13 @@ class DispositivoInfo {
   final String id;
   final String modelo;
   final String plataforma;
+  final String? legacyId;
 
   const DispositivoInfo({
     required this.id,
     required this.modelo,
     required this.plataforma,
+    this.legacyId,
   });
 }
 
@@ -30,6 +33,7 @@ class DispositivoAuthResultado {
 
 class DispositivoAuthService {
   static const String _tabla = 'dispositivos_autorizados';
+  static const AndroidId _androidId = AndroidId();
   static DispositivoInfo? _cacheDispositivo;
 
   static String _fechaHoraLocalIsoSinZona() {
@@ -54,10 +58,16 @@ class DispositivoAuthService {
 
       try {
         final androidInfo = await deviceInfo.androidInfo;
+        final androidId = await _androidId.getId();
+        final idUnico = (androidId != null && androidId.trim().isNotEmpty)
+            ? 'android:$androidId'
+            : 'android_fallback:${androidInfo.fingerprint}';
+
         _cacheDispositivo = DispositivoInfo(
-          id: androidInfo.fingerprint,
+          id: idUnico,
           modelo: '${androidInfo.manufacturer} ${androidInfo.model}',
           plataforma: 'Android ${androidInfo.version.release}',
+          legacyId: androidInfo.fingerprint,
         );
         return _cacheDispositivo!;
       } catch (_) {}
@@ -94,7 +104,7 @@ class DispositivoAuthService {
     final dispositivo = await obtenerDispositivoActual();
 
     try {
-      final data = await supabase
+      var data = await supabase
           .from(_tabla)
           .select('id')
           .eq('email', email)
@@ -102,7 +112,19 @@ class DispositivoAuthService {
           .eq('activo', true)
           .limit(1);
 
-      final autorizado = data is List && data.isNotEmpty;
+        if (data.isEmpty &&
+          dispositivo.legacyId != null &&
+          dispositivo.legacyId!.isNotEmpty) {
+        data = await supabase
+            .from(_tabla)
+            .select('id')
+            .eq('email', email)
+            .eq('dispositivo_id', dispositivo.legacyId!)
+            .eq('activo', true)
+            .limit(1);
+      }
+
+      final autorizado = data.isNotEmpty;
 
       return DispositivoAuthResultado(
         autorizado: autorizado,
@@ -143,7 +165,7 @@ class DispositivoAuthService {
           .eq('activo', true)
           .limit(1);
 
-      return data is List && data.isNotEmpty;
+      return data.isNotEmpty;
     } catch (_) {
       return false;
     }
@@ -155,17 +177,29 @@ class DispositivoAuthService {
     final dispositivo = await obtenerDispositivoActual();
 
     try {
-      final existente = await supabase
+      var existente = await supabase
           .from(_tabla)
           .select('id')
           .eq('email', email)
           .eq('dispositivo_id', dispositivo.id)
           .maybeSingle();
 
+      if (existente == null &&
+          dispositivo.legacyId != null &&
+          dispositivo.legacyId!.isNotEmpty) {
+        existente = await supabase
+            .from(_tabla)
+            .select('id')
+            .eq('email', email)
+            .eq('dispositivo_id', dispositivo.legacyId!)
+            .maybeSingle();
+      }
+
       if (existente != null) {
         await supabase
             .from(_tabla)
             .update({
+              'dispositivo_id': dispositivo.id,
               'dispositivo_modelo': dispositivo.modelo,
               'plataforma': dispositivo.plataforma,
               'activo': true,
